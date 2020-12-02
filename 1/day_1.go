@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 )
 
 const YEAR = 2020
@@ -95,21 +96,31 @@ func part_2() (found bool, product int) {
 	return
 }
 
+func makeTimestamp() int64 {
+	return time.Now().UnixNano()
+}
+
 func main() {
 	fmt.Println("PART 1:")
 
+	t1 := makeTimestamp()
 	found, product := part_1()
+	t2 := makeTimestamp()
 	if found && product != 0 {
 		fmt.Println("The solution for part 1 is: ", product)
+		fmt.Println("Time in nanoseconds: ", (t2 - t1))
 	} else {
 		fmt.Println("Could not find the numbers for part 1!")
 	}
 
 	fmt.Println("PART 2:")
 
+	t1 = makeTimestamp()
 	found, product = part_2()
+	t2 = makeTimestamp()
 	if found && product != 0 {
 		fmt.Println("The solution for part 2 is: ", product)
+		fmt.Println("Time in nanoseconds: ", (t2 - t1))
 	} else {
 		fmt.Println("Could not find the numbers for part 2!")
 	}
