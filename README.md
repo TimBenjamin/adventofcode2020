@@ -5,7 +5,7 @@ My solutions for this year's AoC. I am using Go as a way of learning Go.
 ## Progress:
 - Day 1: very nice + big success (got tempted to over-engineer)
 - Day 2: very nice + big success (with a regexp-shaped hammer, every problem is a regexp-shaped nail)
-- Day 3: 
+- Day 3: very nice + big success (tried out the various ways of declaring slices / arrays)
 - Day 4: 
 - Day 5: 
 - Day 6: 
