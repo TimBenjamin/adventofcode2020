@@ -40,12 +40,15 @@ func part_2() (sum int) {
 	return
 }
 
+// Run the program with the argument "2" to run part 2, or anything else for part 1.
 func main() {
-	fmt.Println("PART 1:")
-	answer := part_1()
-	fmt.Printf("The answer is %v\n", answer)
-
-	fmt.Println("PART 2:")
-	answer = part_2()
-	fmt.Printf("The answer is %v\n", answer)
+	if len(os.Args) > 1 && os.Args[1] == "2" {
+		fmt.Println("PART 2:")
+		answer := part_2()
+		fmt.Printf("The answer is %v\n", answer)
+	} else {
+		fmt.Println("PART 1:")
+		answer := part_1()
+		fmt.Printf("The accumulator at stop is %v\n", answer)
+	}
 }

@@ -10,7 +10,7 @@ My solutions for this year's AoC. I am using Go as a way of learning Go.
 - Day 5: very nice + big success (round and round we go, this could be more efficient...)
 - Day 6: very nice + big success (could do with refactoring...)
 - Day 7: very nice + big success (I will need a Bag of Holding by the end of this)
-- Day 8: 
+- Day 8: very nice + big success (enjoyable program error correction, which makes a pleasant change)
 - Day 9: 
 - Day 10: 
 - Day 11: 
