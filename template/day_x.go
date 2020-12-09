@@ -49,6 +49,6 @@ func main() {
 	} else {
 		fmt.Println("PART 1:")
 		answer := part_1()
-		fmt.Printf("The accumulator at stop is %v\n", answer)
+		fmt.Printf("The answer is %v\n", answer)
 	}
 }
