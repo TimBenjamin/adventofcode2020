@@ -4,22 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"reflect"
 	"sort"
 	"strconv"
 )
-
-func prepend_int(p int, s []int) (n []int) {
-	return append([]int{p}, s...)
-}
-
-func reverseAny(s interface{}) {
-	n := reflect.ValueOf(s).Len()
-	swap := reflect.Swapper(s)
-	for i, j := 0, n-1; i < j; i, j = i+1, j-1 {
-		swap(i, j)
-	}
-}
 
 var adapters []int
 
