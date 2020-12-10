@@ -12,7 +12,7 @@ My solutions for this year's AoC. I am using Go as a way of learning Go.
 - Day 7: very nice + big success (I will need a Bag of Holding by the end of this)
 - Day 8: very nice + big success (enjoyable program error correction, which makes a pleasant change)
 - Day 9: very nice + big success (seemed suspiciously straightforward today - is there something encrypted in the data???)
-- Day 10: 
+- Day 10: very nice + big success, eventually (part 2 was difficult and I had many false starts)
 - Day 11: 
 - Day 12: 
 - Day 13: 
