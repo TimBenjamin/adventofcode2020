@@ -14,7 +14,7 @@ My solutions for this year's AoC. I am using Go as a way of learning Go.
 - Day 9: very nice + big success (seemed suspiciously straightforward today - is there something encrypted in the data???)
 - Day 10: very nice + big success, eventually (part 2 was difficult and I had many false starts)
 - Day 11: very nice + big success (easier today but tripped up over copying slices vs arrays)
-- Day 12: 
+- Day 12: very nice + big success (part 2 was too hard, but I learned that brute force is the wrong approach in these puzzles)
 - Day 13: 
 - Day 14: 
 - Day 15: 
