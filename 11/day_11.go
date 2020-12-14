@@ -56,34 +56,34 @@ func seat_decision(i int, j int) string {
 		new_status = current_status
 	} else {
 
-		seats_to_test := []string{".", ".", ".", ".", ".", ".", ".", "."}
+		seats_to_test := []string{}
 
 		// row above: left middle right
 		if i > 0 {
 			if j > 0 {
-				seats_to_test[0] = seatmap[i-1][j-1]
+				seats_to_test = append(seats_to_test, seatmap[i-1][j-1])
 			}
-			seats_to_test[1] = seatmap[i-1][j]
+			seats_to_test = append(seats_to_test, seatmap[i-1][j])
 			if j < len(seatmap[i])-1 {
-				seats_to_test[2] = seatmap[i-1][j+1]
+				seats_to_test = append(seats_to_test, seatmap[i-1][j+1])
 			}
 		}
 		// middle row: left middle right
 		if j > 0 {
-			seats_to_test[3] = seatmap[i][j-1]
+			seats_to_test = append(seats_to_test, seatmap[i][j-1])
 		}
 		// middle middle is the seat we are testing itself, so ignore!
 		if j < len(seatmap[i])-1 {
-			seats_to_test[4] = seatmap[i][j+1]
+			seats_to_test = append(seats_to_test, seatmap[i][j+1])
 		}
 		// row below: left middle right
 		if i < len(seatmap)-1 {
 			if j > 0 {
-				seats_to_test[5] = seatmap[i+1][j-1]
+				seats_to_test = append(seats_to_test, seatmap[i+1][j-1])
 			}
-			seats_to_test[6] = seatmap[i+1][j]
+			seats_to_test = append(seats_to_test, seatmap[i+1][j])
 			if j < len(seatmap[i])-1 {
-				seats_to_test[7] = seatmap[i+1][j+1]
+				seats_to_test = append(seats_to_test, seatmap[i+1][j+1])
 			}
 		}
 
@@ -150,7 +150,7 @@ func part_1() (result int) {
 		}
 		copy(seatmap, new_seatmap)
 
-		//fmt.Printf("Seatmap after round %v:\n", round_counter)
+		//fmt.Printf("Seatmap after round %v - there were %v changes:\n", round_counter, changes)
 		//print_seatmap()
 
 		if changes == 0 {
