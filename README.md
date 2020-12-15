@@ -16,7 +16,7 @@ My solutions for this year's AoC. I am using Go as a way of learning Go.
 - Day 11: very nice + big success (easier today but tripped up over copying slices vs arrays)
 - Day 12: very nice + big success (part 2 was too hard, but I learned that brute force is the wrong approach in these puzzles)
 - Day 13: very nice + big success (there is probably an easier way using l33t b1nary ski11z, but I don't have those)
-- Day 14: 
+- Day 14: very nice + big success (found a performant answer quickly today, not as conceptually hard as previous 2 days)
 - Day 15: 
 - Day 16: 
 - Day 17: 
