@@ -19,7 +19,7 @@ My solutions for this year's AoC. I am using Go as a way of learning Go.
 - Day 14: very nice + big success (there is probably an easier way using l33t b1nary ski11z, but I don't have those)
 - Day 15: very nice + big success (found a performant answer quickly today, not as conceptually hard as previous 2 days)
 - Day 16: very nice + big success (felt like solving a sudoku)
-- Day 17: 
+- Day 17: very nice + big success (it was a mistake to go down the route of n-dimensional slices - maps ftw)
 - Day 18: 
 - Day 20: 
 - Day 21: 
