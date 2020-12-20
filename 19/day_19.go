@@ -11,7 +11,7 @@ import (
 
 var real_input_file = "./input.txt"
 var real_rules_file = "./rules.txt"
-var test_input_file = "./test_input_3.txt"
+var test_input_file = "./test_input_2.txt"
 var test_rules_file = "./test_rules_2.txt"
 
 var rules_file = test_rules_file
@@ -62,7 +62,7 @@ func handle_rule(rule_index string, data string) (new_data string, result bool) 
 	matched, _ := regexp.MatchString(`\d`, rule)
 	if matched {
 		// handle a numeric rule
-		fmt.Println("handle numeric rule:", rule)
+		//fmt.Println("handle numeric rule:", rule)
 		options := strings.Split(rule, "|")
 		// there might be only 1 option, or 2
 		data_original := data
@@ -71,10 +71,15 @@ func handle_rule(rule_index string, data string) (new_data string, result bool) 
 			option = strings.TrimSpace(option)
 			fmt.Printf("try option %v which is >>%v<<\n", option_index, option)
 			rule_sequence := strings.Split(option, " ")
-			for _, r := range rule_sequence {
+			for i, r := range rule_sequence {
 				fmt.Println("We have to apply rule:", r)
 				data, result = handle_rule(r, data)
 				if result {
+					// if there are more rules to come, and we have no data left, this should be a dead-end path.
+					if i < len(rule_sequence)-1 && len(data) == 0 {
+						fmt.Println("No more data, but there are more rules! try another path")
+						return data, false
+					}
 					continue // apply the next r
 				} else {
 					if option_index == 0 {
@@ -89,7 +94,7 @@ func handle_rule(rule_index string, data string) (new_data string, result bool) 
 					}
 				}
 			}
-			// reached the end of this chain of rules and therefore this option succeeded
+			// reached the end of this chain of rules
 			return data, result
 		}
 		// if we are here, no options worked.
