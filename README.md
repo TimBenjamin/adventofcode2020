@@ -21,8 +21,8 @@ My solutions for this year's AoC. I am using Go as a way of learning Go.
 - Day 16: very nice + big success (felt like solving a sudoku)
 - Day 17: very nice + big success (it was a mistake to go down the route of n-dimensional slices - maps ftw)
 - Day 18: very nice + big success (enjoyed the bracketing reduction, could have written a neater answer, must use more small functions)
-- Day 19: very nice + FAIL (the one that got away? my part 2 does not produce the right answer and I don't see why)
-- Day 20: 
+- Day 19: very nice + FAIL (my part 2 does not produce the right answer and I don't see why)
+- Day 20: very nice + FAIL (fairly straightforward to find a part 1 answer, but then building the jigsaw is too much for me)
 - Day 21: 
 - Day 22: 
 - Day 23: 

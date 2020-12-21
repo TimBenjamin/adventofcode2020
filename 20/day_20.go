@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -17,6 +18,10 @@ const N = "n"
 const E = "e"
 const S = "s"
 const W = "w"
+
+var corner_tiles_real = []string{"2273", "2243", "2953", "1213"}
+var corner_tiles_test = []string{"1951", "2971", "3079", "1171"}
+var corner_tiles = corner_tiles_real
 
 // describe tiles by their flipped status, how many times rotated, and what their n, e, s, w edges are like (which will vary depending on rotations and flip)
 type Tile struct {
@@ -32,21 +37,21 @@ func (t *Tile) rotate() {
 	} else {
 		t.rotations = 0
 	}
-	w := t.edges["w"]
-	t.edges["w"] = t.edges["s"]
-	t.edges["s"] = t.edges["e"]
-	t.edges["e"] = t.edges["n"]
-	t.edges["n"] = w
+	w := t.edges[W]
+	t.edges[W] = t.edges[S]
+	t.edges[S] = t.edges[E]
+	t.edges[E] = t.edges[N]
+	t.edges[N] = w
 }
 
 func (t *Tile) flip() {
 	t.flipped = !t.flipped
-	w := t.edges["w"]
-	t.edges["w"] = t.edges["e"]
-	t.edges["e"] = w
+	w := t.edges[W]
+	t.edges[W] = t.edges[E]
+	t.edges[E] = w
 	// reverse n and s
-	t.edges["n"] = reverse(t.edges["n"])
-	t.edges["s"] = reverse(t.edges["s"])
+	t.edges[N] = reverse(t.edges[N])
+	t.edges[S] = reverse(t.edges[S])
 }
 
 func (t *Tile) reset() {
@@ -97,13 +102,13 @@ var tiles = map[string]Tile{}
 // combine the edge elements into a string for comparison
 func get_edge_from_tile_data(tile []string, edge string) string {
 	var idx int
-	if edge == "n" {
+	if edge == N {
 		return tile[0]
-	} else if edge == "s" {
+	} else if edge == S {
 		return tile[len(tile)-1]
-	} else if edge == "e" {
+	} else if edge == E {
 		idx = 0
-	} else if edge == "w" {
+	} else if edge == W {
 		idx = len(tile[0]) - 1
 	} else {
 		panic(errors.New("Unexpected edge"))
@@ -129,10 +134,10 @@ func parse_input(input [][]string) {
 					tile_data = append(tile_data, tile[i])
 				}
 				edges := map[string]string{}
-				edges["n"] = get_edge_from_tile_data(tile_data, "n")
-				edges["e"] = get_edge_from_tile_data(tile_data, "e")
-				edges["s"] = get_edge_from_tile_data(tile_data, "s")
-				edges["w"] = get_edge_from_tile_data(tile_data, "w")
+				edges[N] = get_edge_from_tile_data(tile_data, N)
+				edges[E] = get_edge_from_tile_data(tile_data, E)
+				edges[S] = get_edge_from_tile_data(tile_data, S)
+				edges[W] = get_edge_from_tile_data(tile_data, W)
 				tiles[tile_id] = Tile{
 					tile_id, edges, false, 0,
 				}
@@ -152,201 +157,149 @@ func in_array(val string, array []string) (ok bool) {
 }
 
 // finds tiles that match this tile's specified edge, and says which of their edges it is that matches
+// if we offered a N edge, need matching S edges (and vice versa)
+// if we offered a E edge, need matching W edges (and vice versa)
 func find_matches(tile Tile, edge string) map[string]string {
 	matches := map[string]string{}
 	for check_id, check_tile := range tiles {
 		if tile.id == check_id {
 			continue
 		}
-		if tile.edges[edge] == check_tile.edges["n"] {
-			matches[check_id] = "n"
+		if edge == N && tile.edges[N] == check_tile.edges[S] {
+			matches[check_id] = S
+			//fmt.Printf(" tile %v:N [%v] matches tile %v:S [%v]\n", tile.id, tile.edges[N], check_id, tiles[check_id].edges[S])
 		}
-		if tile.edges[edge] == check_tile.edges["e"] {
-			matches[check_id] = "e"
+		if edge == S && tile.edges[S] == check_tile.edges[N] {
+			matches[check_id] = N
+			//fmt.Printf(" tile %v:S [%v] matches tile %v:N [%v]\n", tile.id, tile.edges[S], check_id, tiles[check_id].edges[N])
 		}
-		if tile.edges[edge] == check_tile.edges["s"] {
-			matches[check_id] = "s"
+		if edge == E && tile.edges[E] == check_tile.edges[W] {
+			matches[check_id] = W
+			//fmt.Printf(" tile %v:E [%v] matches tile %v:W [%v]\n", tile.id, tile.edges[E], check_id, tiles[check_id].edges[W])
 		}
-		if tile.edges[edge] == check_tile.edges["w"] {
-			matches[check_id] = "w"
+		if edge == W && tile.edges[W] == check_tile.edges[E] {
+			matches[check_id] = E
+			//fmt.Printf(" tile %v:W [%v] matches tile %v:E [%v]\n", tile.id, tile.edges[W], check_id, tiles[check_id].edges[E])
 		}
 	}
 	return matches
 }
 
+func find_all_matches(tile Tile, edge string) map[string]string {
+	matches := map[string]string{}
+	sides := []string{N, E, S, W}
+	for check_id, check_tile := range tiles {
+		if tile.id == check_id {
+			continue
+		}
+		for _, side := range sides {
+			if check_tile.edges[edge] == tile.edges[side] {
+				matches[check_id] = side
+				fmt.Printf(" tile %v:%v [%v] matches tile %v:%v [%v]\n", tile.id, side, tile.edges[side], check_id, edge, check_tile.edges[edge])
+			}
+		}
+		// check the reversed version of each side
+		for _, side := range sides {
+			if reverse(check_tile.edges[edge]) == tile.edges[side] {
+				matches[check_id] = side
+				fmt.Printf(" tile %v:%v [%v] matches reversed-edge tile %v:%v [%v]\n", tile.id, side, tile.edges[side], check_id, edge, reverse(check_tile.edges[edge]))
+			}
+		}
+	}
+	return matches
+}
+
+func examine_tile(tile Tile) int {
+	fmt.Println("Examine:", tile.id)
+	matches_n := find_all_matches(tile, N)
+	matches_e := find_all_matches(tile, E)
+	matches_s := find_all_matches(tile, S)
+	matches_w := find_all_matches(tile, W)
+	if len(matches_n) > 0 {
+		fmt.Printf("   %v matches on N\n", len(matches_n))
+		for k, m := range matches_n {
+			fmt.Printf("     %v:%v\n", k, m)
+		}
+	}
+	if len(matches_e) > 0 {
+		fmt.Printf("   %v matches on E\n", len(matches_e))
+		for k, m := range matches_e {
+			fmt.Printf("     %v:%v\n", k, m)
+		}
+	}
+	if len(matches_s) > 0 {
+		fmt.Printf("   %v matches on S\n", len(matches_s))
+		for k, m := range matches_s {
+			fmt.Printf("     %v:%v\n", k, m)
+		}
+	}
+	if len(matches_w) > 0 {
+		fmt.Printf("   %v matches on W\n", len(matches_w))
+		for k, m := range matches_w {
+			fmt.Printf("     %v:%v\n", k, m)
+		}
+	}
+	return len(matches_n) + len(matches_e) + len(matches_s) + len(matches_w)
+}
+
+// Part 2 working...
+// I know the corner tiles from part 1
+// {"2273", "2243", "2953", "1213"}
+// first find out which corners they are and in which rotations
+// my functions tell me which the matching edges are so we can pencil in something
 func run() {
+	tile := tiles["2953"]
+	tile.rotate()
+	tile.rotate()
+	tile.rotate()
+	examine_tile(tile)
+}
 
-	immune_tiles := []string{} // ones that we match to a corner, don't rotate/flip them pls
+// NW and SW could be the other way round.
+// I think the next step would be to find all tiles that have exactly 3 matching edges, these would be my edge tiles.
+// And then those that have 4 matching edges, these are the inner tiles.
+// Total pain to work out how they fit together though.
+// Going to have to give up here!
+var solution = [][]string{
+	{"2243", "2707-FR1", "", "", "", "", "", "", "", "", "1543", "2273"},
+	{"2663", "", "", "", "", "", "", "", "", "", "", "2617"},
+	{"", "", "", "", "", "", "", "", "", "", "", ""},
+	{"", "", "", "", "", "", "", "", "", "", "", ""},
+	{"", "", "", "", "", "", "", "", "", "", "", ""},
+	{"", "", "", "", "", "", "", "", "", "", "", ""},
+	{"", "", "", "", "", "", "", "", "", "", "", ""},
+	{"", "", "", "", "", "", "", "", "", "", "", ""},
+	{"", "", "", "", "", "", "", "", "", "", "", ""},
+	{"", "", "", "", "", "", "", "", "", "", "", ""},
+	{"2371-R2", "", "", "", "", "", "", "", "", "", "", "3259-R3"},
+	{"2953-R3", "", "", "", "", "", "", "", "", "", "3511-F", "1213"},
+}
 
-	// try to find just the NE corner
-	// want one that has matches on S:n and W:e (only!)
-	// That "n" must have matches on n, w, and s only (not e)
-	// That "e" must have matches on e, s, and w only (not n)
-	fmt.Println("Look for candidates for the NE corner")
-	for id, tile := range tiles {
-		// don't want anything that matches on the N or E sides
-		possible := true
-		candidates_N := find_matches(tile, N)
-		if len(candidates_N) > 0 {
-			possible = false
-		}
-		candidates_E := find_matches(tile, E)
-		if len(candidates_E) > 0 {
-			possible = false
-		}
-		if !possible {
-			continue
-		}
-		// now
-		condition_1 := false
-		//var candidate_1 int
-		condition_2 := false
-		//var candidate_2 int
-		candidates_S := find_matches(tile, S)
-		for _, edge := range candidates_S {
-			if edge == N {
-				condition_1 = true
-			}
-		}
-		candidates_W := find_matches(tile, W)
-		for _, edge := range candidates_W {
-			if edge == E {
-				condition_2 = true
-			}
-		}
-		if condition_1 && condition_2 {
-			fmt.Printf("  Tile %v works for the NE corner, matches S and W\n", id)
-			immune_tiles = append(immune_tiles, id)
+func part_1() (product int) {
+	// examine the tiles ... how many edges line up with other tiles, for each?
+	// known corner tile has 2 matching edges regardless of rotation
+	// this works to produce exactly 4 corner tiles from both test and real data.
+	corner_tiles := []string{}
+	product = 1
+	for _, tile := range tiles {
+		num_matches := examine_tile(tile)
+		if num_matches == 2 {
+			fmt.Printf("Tile %v has %v matching edges\n", tile.id, num_matches)
+			corner_tiles = append(corner_tiles, tile.id)
+			id, _ := strconv.Atoi(tile.id)
+			product *= id
 		}
 	}
-
-	// OK now find the SE corner
-	fmt.Println("Look for candidates for the SE corner")
-	for id, tile := range tiles {
-		if in_array(id, immune_tiles) {
-			continue
-		}
-		tile.flip()
-		possible := true
-		candidates_S := find_matches(tile, S)
-		if len(candidates_S) > 0 {
-			possible = false
-		}
-		candidates_E := find_matches(tile, E)
-		if len(candidates_E) > 0 {
-			possible = false
-		}
-		if !possible {
-			continue
-		}
-		// now
-		condition_1 := false
-		condition_2 := false
-		candidates_N := find_matches(tile, N)
-		for _, edge := range candidates_N {
-			if edge == S {
-				condition_1 = true
-			}
-		}
-		candidates_W := find_matches(tile, W)
-		for _, edge := range candidates_W {
-			if edge == E {
-				condition_2 = true
-			}
-		}
-		if condition_1 && condition_2 {
-			fmt.Printf("  Tile %v works for the SE corner, matches N and W\n", id)
-			immune_tiles = append(immune_tiles, id)
-		}
-		tile.reset()
-	}
-
-	// OK now find the SW corner
-	fmt.Println("Look for candidates for the SW corner")
-	for id, tile := range tiles {
-		if in_array(id, immune_tiles) {
-			continue
-		}
-		possible := true
-		candidates_S := find_matches(tile, S)
-		if len(candidates_S) > 0 {
-			possible = false
-		}
-		candidates_W := find_matches(tile, W)
-		if len(candidates_W) > 0 {
-			possible = false
-		}
-		if !possible {
-			continue
-		}
-		// now
-		condition_1 := false
-		condition_2 := false
-		candidates_N := find_matches(tile, N)
-		for _, edge := range candidates_N {
-			if edge == S {
-				condition_1 = true
-			}
-		}
-		candidates_E := find_matches(tile, E)
-		for _, edge := range candidates_E {
-			if edge == W {
-				condition_2 = true
-			}
-		}
-		if condition_1 && condition_2 {
-			fmt.Printf("  Tile %v works for the SE corner, matches N and W\n", id)
-			immune_tiles = append(immune_tiles, id)
-		}
-	}
-
-	// OK now find the SW corner
-	fmt.Println("Look for candidates for the NW corner")
-	for id, tile := range tiles {
-		if in_array(id, immune_tiles) {
-			continue
-		}
-		possible := true
-		candidates_N := find_matches(tile, N)
-		if len(candidates_N) > 0 {
-			possible = false
-		}
-		candidates_W := find_matches(tile, W)
-		if len(candidates_W) > 0 {
-			possible = false
-		}
-		if !possible {
-			continue
-		}
-		// now
-		condition_1 := false
-		condition_2 := false
-		candidates_S := find_matches(tile, S)
-		for _, edge := range candidates_S {
-			if edge == N {
-				condition_1 = true
-			}
-		}
-		candidates_E := find_matches(tile, E)
-		for _, edge := range candidates_E {
-			if edge == W {
-				condition_2 = true
-			}
-		}
-		if condition_1 && condition_2 {
-			fmt.Printf("  Tile %v works for the SE corner, matches N and W\n", id)
-			immune_tiles = append(immune_tiles, id)
-		}
-	}
-
-	// Part 1 - we only need corner tiles
-	// "multiply the IDs of the four corner tiles together"
-	// so that's tiles that only match 2 other tiles, SE, SW, NE, NW.
+	fmt.Println("The corner tiles are:", corner_tiles)
+	// Part 1 - "multiply the IDs of the four corner tiles together"
+	return
 }
 
 // Run the program with the argument "2" to run part 2, or anything else for part 1.
 func main() {
 	parse_input(get_input())
-	fmt.Printf("There are %v tiles\n", len(tiles))
+	//fmt.Printf("There are %v tiles\n", len(tiles))
+	//part_1_answer := part_1()
+	//fmt.Println("Part 1 answer:", part_1_answer)
 	run()
 }
