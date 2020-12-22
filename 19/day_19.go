@@ -177,8 +177,9 @@ func run() int {
 }
 
 func chop(chain string, letter byte) (new_chain string, result bool) {
+	//fmt.Println("chop:", string(letter))
 	if len(chain) == 0 {
-		fmt.Println("The chain is empty!")
+		//fmt.Println("The chain is empty!")
 		return chain, false
 	} else if chain[0] == letter {
 		if len(chain) > 1 {
@@ -188,7 +189,7 @@ func chop(chain string, letter byte) (new_chain string, result bool) {
 		}
 		return chain, true
 	} else {
-		fmt.Printf("The chain does not match '%v'!\n", string(letter))
+		//fmt.Printf("The chain does not match '%v'!\n", string(letter))
 		return chain, false
 	}
 }
@@ -258,6 +259,68 @@ func apply(rule string, chain string) (new_chain string, result bool) {
 	return chain, true
 }
 
+// yet another version ... this time with a rule like 1 2 | 3 4
+// - pass [1 2] back to the function rather than having the inner loop
+func do(rule string, chain string) (new_chain string, result bool) {
+	fmt.Println("do:", rule)
+	if len(chain) == 0 {
+		fmt.Printf("chain is zero length, rule failed: %v\n", rule)
+		return "", false
+	}
+	// first, is this a fork?
+	options := strings.Split(rule, " | ")
+	if len(options) > 1 {
+		for _, option := range options {
+			new_chain, result = do(option, chain)
+			if result {
+				chain = new_chain
+				fmt.Printf("option %v true\n", option)
+				return chain, true // bust out of the options loop as this one worked
+			} else {
+				fmt.Printf("> option %v failed, try next\n", option)
+				fmt.Println("  - length of resulting chain was:", len(new_chain))
+			}
+		}
+		// neither option worked
+		fmt.Println("> both options failed")
+		return chain, false
+	} else {
+		// not a fork, handle the sequence
+		original_chain := chain
+		sequence := strings.Split(rule, " ")
+		for _, s := range sequence {
+			if s == "11" {
+				fmt.Println(">>>>>>>Rule 11, sequence is:", sequence)
+			}
+			if s == rule_a {
+				chain, result = chop(chain, 'a')
+				if !result {
+					fmt.Printf("> chop a failed, rule %v in sequence %v\n", s, rule)
+					return original_chain, false
+				}
+			} else if s == rule_b {
+				chain, result = chop(chain, 'b')
+				if !result {
+					fmt.Printf("> chop b failed, rule %v in sequence %v\n", s, rule)
+					return original_chain, false
+				}
+			} else {
+				chain, result = do(rules[s], chain)
+				if result {
+					// do the next "s" in sequence, as we had a good result
+					continue
+				} else {
+					fmt.Println("> seq failed on rule", s)
+					return original_chain, false
+				}
+			}
+		}
+		// we made it through that sequence
+		fmt.Printf("seq %v true\n", rule)
+		return chain, true
+	}
+}
+
 // Run the program with the argument "2" to run part 2, or anything else for part 1.
 func main() {
 	get_rules()
@@ -275,19 +338,21 @@ func main() {
 
 	// single case testing:
 	input = []string{"aaaaabbaabaaaaababaa"} // invalid in part 1, valid in part 2
-	//input = []string{"bbabbbbaabaabba"}      // valid in both parts
+	//input = []string{"bbabbbbaabaabba"} // valid in both parts
 
 	for _, chain := range input {
 		fmt.Println("Chain:", chain)
-		final_chain, result := apply(rules["0"], chain)
-		if len(final_chain) == 0 {
-			fmt.Println("valid!")
-			if result {
+		final_chain, result := do(rules["0"], chain)
+		if result {
+			if len(final_chain) == 0 {
+				fmt.Println("valid!")
 				num_valid++
 				valid = append(valid, chain)
+			} else {
+				fmt.Println("valid, but data remains, so invalid")
 			}
 		} else {
-			fmt.Println("invalid - data remains:", final_chain)
+			fmt.Println("failed")
 		}
 	}
 	fmt.Println("Number valid:", num_valid)
