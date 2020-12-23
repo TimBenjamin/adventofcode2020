@@ -15,8 +15,9 @@ func get_log(p1 []int, p2 []int) (log string) {
 	}
 	log += strings.Join(tmp, ",")
 	log += ":"
-	for _, c := range p2 {
-		tmp = append(tmp, strconv.Itoa(c))
+	tmp = []string{}
+	for _, d := range p2 {
+		tmp = append(tmp, strconv.Itoa(d))
 	}
 	log += strings.Join(tmp, ",")
 	return
@@ -24,6 +25,10 @@ func get_log(p1 []int, p2 []int) (log string) {
 
 func log_round(previous_turns []string, player_1 []int, player_2 []int) []string {
 	previous_turns = append(previous_turns, get_log(player_1, player_2))
+	//fmt.Printf("Length of log in game %v is %v\n", current_game, len(previous_turns))
+	//time.Sleep(1 * time.Second)
+	//fmt.Println("adding log:", get_log(player_1, player_2))
+	//time.Sleep(1 * time.Second)
 	return previous_turns
 }
 
@@ -33,9 +38,12 @@ func check_previous_rounds(previous_turns []string, player_1 []int, player_2 []i
 		return false
 	}
 	test_log := get_log(player_1, player_2)
+	//fmt.Println("checking for log:", test_log)
+	//time.Sleep(1 * time.Second)
 	for _, log := range previous_turns {
 		if log == test_log {
-			fmt.Printf("previous round condition matched, test: %v against log: %v\n", test_log, log)
+			//fmt.Printf("previous round condition matched, test: %v against log: %v\n", test_log, log)
+			//time.Sleep(1 * time.Second)
 			return true
 		}
 	}
@@ -94,25 +102,40 @@ func take_turn(player_1 []int, player_2 []int, part_2 bool) ([]int, []int) {
 				the next cards in their deck
 				(the quantity of cards copied is equal to the number on the card they drew to trigger the sub-game).
 			*/
+			/*
+				During a round of Recursive Combat, if both players have at least as many cards in their own decks
+				as the number on the card they just dealt, the winner of the round is determined by recursing into a
+				sub-game of Recursive Combat. (For example, if player 1 draws the 3 card, and player 2 draws the 7 card,
+				this would occur if player 1 has at least 3 cards left and player 2 has at least 7 cards left, not
+				counting the 3 and 7 cards that were drawn.)
+			*/
 			new_player_1 := []int{}
-			for i := 1; i < len(player_1); i++ {
-				new_player_1 = append(new_player_1, player_1[i])
+			if len(player_1)-1 >= p1_card && len(player_2)-1 >= p2_card {
+				for i := 1; i <= p1_card; i++ {
+					new_player_1 = append(new_player_1, player_1[i])
+				}
+				new_player_2 := []int{}
+				for i := 1; i <= p2_card; i++ {
+					new_player_2 = append(new_player_2, player_2[i])
+				}
+				current_game++
+				total_games++
+				fmt.Println("Start game", current_game)
+				subgame_score, winner := run(new_player_1, new_player_2, part_2)
+				fmt.Printf("Player %v won the subgame, the score for game %v was %v\n", winner, current_game, subgame_score)
+				current_game--
+				fmt.Println("Anyway, back to game", current_game)
+				// this round is determined by the winner of that subgame we just had
+				player_1, player_2 = do_winner(player_1, player_2, p1_card, p2_card, winner)
+				fmt.Println()
+				return player_1, player_2
+			} else {
+				fmt.Println("P1 drew card:", p1_card)
+				fmt.Println("P1 has how many other cards left:", len(player_1)-1)
+				fmt.Println("P2 drew card:", p2_card)
+				fmt.Println("P2 has how many other cards left:", len(player_2)-1)
+				panic(errors.New("what do I do if a player doesn't have enough cards for the subgame?"))
 			}
-			new_player_2 := []int{}
-			for i := 1; i < len(player_2); i++ {
-				new_player_2 = append(new_player_2, player_2[i])
-			}
-			current_game++
-			total_games++
-			fmt.Println("Start game", current_game)
-			subgame_score, winner := run(new_player_1, new_player_2, part_2)
-			fmt.Printf("Player %v won the subgame, the score for game %v was %v\n", winner, current_game, subgame_score)
-			current_game--
-			fmt.Println("Anyway, back to game", current_game)
-			// this round is determined by the winner of that subgame we just had
-			player_1, player_2 = do_winner(player_1, player_2, p1_card, p2_card, winner)
-			fmt.Println()
-			return player_1, player_2
 		}
 	}
 	fmt.Println(" p1 plays:", p1_card)
@@ -174,16 +197,16 @@ func main() {
 	var player_1, player_2 []int
 
 	// test data
-	player_1 = []int{9, 2, 6, 3, 1}
-	player_2 = []int{5, 8, 4, 7, 10}
+	//player_1 = []int{9, 2, 6, 3, 1}
+	//player_2 = []int{5, 8, 4, 7, 10}
 
 	// part 2 test data
 	//player_1 = []int{43, 19}
 	//player_2 = []int{2, 29, 14}
 
 	// real data
-	//player_1 = []int{44, 47, 29, 31, 10, 40, 50, 27, 35, 30, 38, 11, 14, 9, 42, 1, 26, 24, 6, 13, 8, 15, 21, 18, 4}
-	//player_2 = []int{17, 22, 28, 34, 32, 23, 3, 19, 36, 12, 45, 37, 46, 39, 49, 43, 25, 33, 2, 41, 48, 7, 5, 16, 20}
+	player_1 = []int{44, 47, 29, 31, 10, 40, 50, 27, 35, 30, 38, 11, 14, 9, 42, 1, 26, 24, 6, 13, 8, 15, 21, 18, 4}
+	player_2 = []int{17, 22, 28, 34, 32, 23, 3, 19, 36, 12, 45, 37, 46, 39, 49, 43, 25, 33, 2, 41, 48, 7, 5, 16, 20}
 
 	if len(os.Args) > 1 && os.Args[1] == "2" {
 		score, winner := run(player_1, player_2, true)
