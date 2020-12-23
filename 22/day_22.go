@@ -5,30 +5,19 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 )
 
+// Log spec:
+// "exactly the same cards in the same order in the same players' decks"
 func get_log(p1 []int, p2 []int) (log string) {
-	tmp := []string{}
-	for _, c := range p1 {
-		tmp = append(tmp, strconv.Itoa(c))
-	}
-	log += strings.Join(tmp, ",")
-	log += ":"
-	tmp = []string{}
-	for _, d := range p2 {
-		tmp = append(tmp, strconv.Itoa(d))
-	}
-	log += strings.Join(tmp, ",")
+	p1_score := get_score(p1)
+	p2_score := get_score(p2)
+	log = strconv.Itoa(p1_score) + ":" + strconv.Itoa(p2_score)
 	return
 }
 
 func log_round(previous_turns []string, player_1 []int, player_2 []int) []string {
 	previous_turns = append(previous_turns, get_log(player_1, player_2))
-	//fmt.Printf("Length of log in game %v is %v\n", current_game, len(previous_turns))
-	//time.Sleep(1 * time.Second)
-	//fmt.Println("adding log:", get_log(player_1, player_2))
-	//time.Sleep(1 * time.Second)
 	return previous_turns
 }
 
@@ -38,12 +27,8 @@ func check_previous_rounds(previous_turns []string, player_1 []int, player_2 []i
 		return false
 	}
 	test_log := get_log(player_1, player_2)
-	//fmt.Println("checking for log:", test_log)
-	//time.Sleep(1 * time.Second)
 	for _, log := range previous_turns {
 		if log == test_log {
-			//fmt.Printf("previous round condition matched, test: %v against log: %v\n", test_log, log)
-			//time.Sleep(1 * time.Second)
 			return true
 		}
 	}
@@ -109,8 +94,8 @@ func take_turn(player_1 []int, player_2 []int, part_2 bool) ([]int, []int) {
 				this would occur if player 1 has at least 3 cards left and player 2 has at least 7 cards left, not
 				counting the 3 and 7 cards that were drawn.)
 			*/
-			new_player_1 := []int{}
 			if len(player_1)-1 >= p1_card && len(player_2)-1 >= p2_card {
+				new_player_1 := []int{}
 				for i := 1; i <= p1_card; i++ {
 					new_player_1 = append(new_player_1, player_1[i])
 				}
@@ -120,7 +105,7 @@ func take_turn(player_1 []int, player_2 []int, part_2 bool) ([]int, []int) {
 				}
 				current_game++
 				total_games++
-				fmt.Println("Start game", current_game)
+				fmt.Println("Start game", total_games)
 				subgame_score, winner := run(new_player_1, new_player_2, part_2)
 				fmt.Printf("Player %v won the subgame, the score for game %v was %v\n", winner, current_game, subgame_score)
 				current_game--
@@ -129,12 +114,6 @@ func take_turn(player_1 []int, player_2 []int, part_2 bool) ([]int, []int) {
 				player_1, player_2 = do_winner(player_1, player_2, p1_card, p2_card, winner)
 				fmt.Println()
 				return player_1, player_2
-			} else {
-				fmt.Println("P1 drew card:", p1_card)
-				fmt.Println("P1 has how many other cards left:", len(player_1)-1)
-				fmt.Println("P2 drew card:", p2_card)
-				fmt.Println("P2 has how many other cards left:", len(player_2)-1)
-				panic(errors.New("what do I do if a player doesn't have enough cards for the subgame?"))
 			}
 		}
 	}
@@ -157,11 +136,12 @@ var total_games = 1
 
 func run(player_1 []int, player_2 []int, part_2 bool) (score int, winner int) {
 	var turns = 0
+	var game_number = total_games
 	var previous_turns = []string{}
 	for {
 		turns++
 		total_turns++
-		fmt.Printf("--- Game %v, turn %v---\n", current_game, turns)
+		fmt.Printf("--- Game %v, turn %v---\n", game_number, turns)
 		fmt.Println(" p1 deck:", player_1)
 		fmt.Println(" p2 deck:", player_2)
 		if part_2 {
@@ -171,7 +151,6 @@ func run(player_1 []int, player_2 []int, part_2 bool) (score int, winner int) {
 				ends in a win for player 1.
 			*/
 			if check_previous_rounds(previous_turns, player_1, player_2) {
-				fmt.Println("Previous round condition - win for player 1")
 				score = get_score(player_1)
 				return score, 1
 			} else {
