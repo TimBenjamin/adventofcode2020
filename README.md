@@ -26,5 +26,5 @@ My solutions for this year's AoC. I am using Go as a way of learning Go.
 - Day 21: very nice + big success (a refreshingly straightforward solution today, I think I was just on the right path from the start)
 - Day 22: very nice + big success (the format of the log entries was my undoing at first - very strange)
 - Day 23: very nice + big success (learned linked lists, and then realised a map of the inverse was the key to very fast execution)
-- Day 24: 
-- Day 24: 
+- Day 24: very nice + big success (learned a coordinate system for hex grids; once in place, this was quite straightforward)
+- Day 25: 
