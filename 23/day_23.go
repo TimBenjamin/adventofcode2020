@@ -8,69 +8,104 @@ import (
 	"time"
 )
 
-type Circle struct {
-	cups []int
+type Node struct {
+	data int
+	next *Node
 }
 
-func (c *Circle) getCupAt(i int) (cup int) {
-	// if i is greater than the length of cups
-	// start looping from the start again
-	n := i % len(c.cups)
-	return c.cups[n]
-}
-
-func get_cups(input string) (cups []int) {
+func get_cups(input string) []int {
 	s := strings.Split(input, "")
-	for _, n := range s {
+	cups := make([]int, len(s))
+	for i, n := range s {
 		c, _ := strconv.Atoi(n)
-		cups = append(cups, c)
+		cups[i] = c
 	}
-	return
+	return cups
 }
 
-func run(cups []int) []int {
-	current_move := 0
+func print_list(n *Node, num_to_print int, current int) {
+	for i := 0; i < num_to_print; i++ {
+		if n.data == current {
+			fmt.Printf("(%v) ", n.data)
+		} else {
+			fmt.Printf("%v ", n.data)
+		}
+		n = n.next
+		if n == nil {
+			break
+		}
+	}
+	fmt.Println()
+}
+
+var test_input = "389125467"
+var real_input = "653427918"
+
+func main() {
+
+	var highest_cup int // 1000000 // 9 in part 1
+	var move_limit int  // 10000000 in part 2 // 100 in part 1
+	var cups []int
+	var PART int
+	input := real_input
+
+	if len(os.Args) > 1 && os.Args[1] == "2" {
+		highest_cup = 1000000
+		move_limit = 10000000
+		PART = 2
+		// highest to begin with is 9
+		// so add cups to start_circle from 10 to 1000000
+		cups = get_cups(input)
+		for i := 10; i <= highest_cup; i++ {
+			cups = append(cups, i)
+		}
+	} else {
+		PART = 1
+		highest_cup = 9
+		move_limit = 100
+		cups = get_cups(input)
+	}
+
+	// make a node linked list of cup->cup->cup
+	// also make a map of label:Node so that we can quickly find the destination_cup each time
+	var cups_map = map[int]*Node{}
+	head := Node{data: cups[0]}
+	n := &head
+	for i := 1; i < len(cups); i++ {
+		n.next = &Node{data: cups[i]}
+		cups_map[n.data] = n
+		n = n.next
+	}
+	n.next = &head
+	cups_map[n.data] = n
+	current_cup := &head
+	current_move := 1
+
+	//fmt.Printf("-- move %v --\n", current_move)
+	//fmt.Printf("cups: ")
+	//print_list(current_cup, highest_cup, current_cup.data)
 
 	// Before the crab starts, it will designate the first cup in your list as the current cup
-	current_cup := cups[0]
-
-	// make these slices at the start then re-use them in the main loop
-	remainder := make([]int, len(cups)-3)
-
+	// current_cup is the head of the linked list...
+	start := time.Now()
+	picked_up_cups := make([]int, 3)
 	for {
-		current_move++
-
 		// The crab picks up the three cups that are immediately clockwise of the current cup.
 		// They are removed from the circle; cup spacing is adjusted as necessary to maintain the circle.
-
-		// I want to re-use "cups" at the end so I have to try not to make references to it as I go along
-
-		// always put current_cup at 0 like it is to begin with
-		//picked_up_cups := cups[1:4]
-		// oddly, it seems faster to make this one fresh every time. huh
-		picked_up_cups := []int{}
-		for i := 1; i < 4; i++ {
-			picked_up_cups = append(picked_up_cups, cups[i])
-		}
-
-		// remainder is pos 4 to the end, then the previous current cup ([0])
-		//remainder := cups[4:]
-		// this is a potential bottleneck
-		//remainder := make([]int, len(cups)-3)
-		// definitely a lot faster to make this one once, maybe because it's so big
-		r := 0
-		for i := 4; i < len(cups); i++ {
-			remainder[r] = cups[i]
-			r++
-		}
-		remainder[r] = current_cup
+		first_pick := current_cup.next
+		second_pick := first_pick.next
+		third_pick := second_pick.next
+		old_third_pointer := third_pick.next
+		picked_up_cups[0] = first_pick.data
+		picked_up_cups[1] = second_pick.data
+		picked_up_cups[2] = third_pick.data
 
 		// The crab selects a destination cup: the cup with a label equal to the current cup's label minus one.
 		// If this would select one of the cups that was just picked up, the crab will keep subtracting one until
 		// it finds a cup that wasn't just picked up.
 		// If at any point in this process the value goes below the lowest value on any cup's label,
 		// it wraps around to the highest value on any cup's label instead.
-		destination_cup := current_cup - 1
+		destination_cup := current_cup.data - 1
 		for {
 			if destination_cup < 1 {
 				destination_cup = highest_cup
@@ -79,6 +114,7 @@ func run(cups []int) []int {
 			for _, p := range picked_up_cups {
 				if p == destination_cup {
 					picked_up = true
+					break
 				}
 			}
 			if !picked_up {
@@ -87,118 +123,77 @@ func run(cups []int) []int {
 			destination_cup--
 		}
 
-		// formatted output:
-		/*
-			fmt.Printf("-- move %v --\n", current_move)
-			fmt.Printf("cups: ")
-			for _, c := range cups {
-				if c == current_cup {
-					fmt.Printf(" (%v)", c)
-				} else {
-					fmt.Printf(" %v", c)
-				}
-			}
-			fmt.Printf("\n")
-		*/
-		//fmt.Printf("pick up: %v\n", picked_up_cups)
-		//fmt.Printf("destination: %v\n\n", destination_cup)
+		//fmt.Println("pick up: ", picked_up_cups)
+		//fmt.Println("destination: ", destination_cup)
+		//fmt.Println()
 
 		// The crab places the cups it just picked up so that they are immediately clockwise of the destination cup.
 		// They keep the same order as when they were picked up.
-		// new_current_cup, remainder up to destination, destination, pickup, then remainder after destination
-		// should be faster re-using the already allocated "cups"
-		for i := 0; i < len(remainder); i++ {
-			cups[i] = remainder[i]
-			//cups = append(cups, remainder[i]) // new current cup and remainder up to destination
-			if remainder[i] == destination_cup {
-				// destination cup was just added
-				c := i + 1
-				for _, p := range picked_up_cups {
-					cups[c] = p
-					c++
-				}
-				//cups = append(cups, picked_up_cups...)
-				for j := i + 1; j < len(remainder); j++ {
-					cups[c] = remainder[j]
-					c++
-				}
-				//cups = append(cups, remainder[i+1:]...)
-				break
-			}
-		}
+		//d_cup := cups_map[destination_cup]
+		third_pick.next = cups_map[destination_cup].next
+		cups_map[destination_cup].next = first_pick
+
+		// now the cup before first_pick (i.e. current_cup) needs to point to the cup that third_pick was pointing to
+		current_cup.next = old_third_pointer
 
 		// The crab selects a new current cup: the cup which is immediately clockwise of the current cup.
 		// NB, the new current cup is going to be the next cup after the pick-up
-		// i.e. the first of the remainder
-		current_cup = remainder[0]
+
+		// and the current_cup needs resetting to the one next to existing current_cup
+		current_cup = current_cup.next
 
 		if current_move == move_limit {
 			break
 		}
+		current_move++
+
+		//fmt.Printf("-- move %v --\n", current_move)
+		//fmt.Printf("cups: ")
+		//print_list(current_cup, highest_cup, current_cup.data)
+
 	}
-	return cups
-}
 
-var test_input = "389125467"
-var real_input = "653427918"
-var highest_cup int // 1000000 // 9 in part 1
-var move_limit int  // 10000000 in part 2 // 100 in part 1
-
-// Run the program with the argument "2" to run part 2, or anything else for part 1.
-func main() {
-
-	if len(os.Args) > 1 && os.Args[1] == "2" {
-		// Part 2!
-		highest_cup = 1000000
-		move_limit = 10000000
-		input := test_input
-		// the remaining cups are just numbered in an increasing fashion starting from
-		// the number after the highest number in your list and proceeding one by one until one million is reached.
-		cups := get_cups(input)
-		// highest to begin with is 9
-		// so add cups to start_circle from 10 to 1000000
-		for i := 10; i <= highest_cup; i++ {
-			cups = append(cups, i)
-		}
-		start := time.Now()
-		final_cups := run(cups)
-		elapsed := time.Since(start)
-		fmt.Printf("Took %v seconds\n", elapsed)
-
-		// Part 2 answer:
-		// Determine which two cups will end up immediately clockwise of cup 1.
-		// What do you get if you multiply their labels together?
-		final_circle := Circle{final_cups}
-		pos_1 := final_circle.getCupAt(1)
-		answer := final_circle.cups[pos_1+1] * final_circle.cups[pos_1+2]
-		fmt.Println("Part 2 answer:", answer)
-	} else {
-		// Part 1!
-		highest_cup = 9
-		move_limit = 100
-		input := real_input
-		cups := get_cups(input)
-		final_cups := run(cups)
-		fmt.Println("-- final --")
-		fmt.Println("cups: ", final_cups)
-
+	if PART == 1 {
 		// After the crab is done, what order will the cups be in?
 		// Starting after the cup labeled 1,
 		// collect the other cups' labels clockwise into a single string with no extra characters;
 		// each number except 1 should appear exactly once.
-		final_circle := Circle{final_cups}
-		labels := []string{}
-		var pos int
-		for i, c := range final_circle.cups {
-			if c == 1 {
-				pos = i
+		fmt.Printf("-- final --\n")
+		fmt.Printf("cups: ")
+		print_list(current_cup, highest_cup, current_cup.data)
+		n := current_cup
+		answer := ""
+		for {
+			if n.data == 1 {
+				for i := 0; i < 9; i++ {
+					answer += strconv.Itoa(n.next.data)
+					n = n.next
+				}
+				break
 			}
+			n = n.next
 		}
-		for i := 1; i < 9; i++ {
-			pos++
-			labels = append(labels, strconv.Itoa(final_circle.getCupAt(pos)))
+		fmt.Println("The answer was:", answer)
+	} else {
+		elapsed := time.Since(start)
+		fmt.Printf("Took %v\n", elapsed)
+		// Determine which two cups will end up immediately clockwise of cup 1.
+		// What do you get if you multiply their labels together?
+		n := current_cup
+		var first int
+		var second int
+		for {
+			if n.data == 1 {
+				first = n.next.data
+				n = n.next
+				second = n.next.data
+				break
+			}
+			n = n.next
 		}
-		fmt.Println("\nFinal string:", strings.Join(labels, ""))
-		// answer should be 76952348 for my real input
+		fmt.Println("First after 1 was:", first)
+		fmt.Println("Second after 1 was:", second)
+		fmt.Println("The answer was:", first*second)
 	}
+
 }
