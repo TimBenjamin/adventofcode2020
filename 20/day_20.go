@@ -22,13 +22,17 @@ var corner_tiles_real = []string{"2273", "2243", "2953", "1213"}
 var corner_tiles_test = []string{"1951", "2971", "3079", "1171"}
 var corner_tiles = corner_tiles_real
 
+// I will map the tiles by their file ID number
+// I need these to be manipulated by reference so use a pointer
+var tiles = map[string]*Tile{}
+
 // describe tiles by their flipped status, how many times rotated, and what their n, e, s, w edges are like (which will vary depending on rotations and flip)
 type Tile struct {
 	id        string
 	edges     map[string]string
 	flipped   bool
-	rotations int // clockwise
-	data      []string
+	rotations int      // clockwise
+	data      []string // the full contents of the tile
 }
 
 func (t *Tile) rotate() {
@@ -44,14 +48,6 @@ func (t *Tile) rotate() {
 	t.edges[N] = reverse(w) // I'm counting top to bottom, left to right, so these get reversed!
 
 	// rotate the data too...
-	/*
-		rotated_data := []string{}
-		for c := 0; c < len(t.data); c++ {
-			col := get_col(c, t.data)
-			rotated_data = append(rotated_data, reverse(col))
-		}
-		t.data = rotated_data
-	*/
 	t.data = rotate_data(t.data)
 }
 
@@ -82,18 +78,12 @@ func (t *Tile) flip() {
 	w := t.edges[W]
 	t.edges[W] = t.edges[E]
 	t.edges[E] = w
+
 	// reverse n and s
 	t.edges[N] = reverse(t.edges[N])
 	t.edges[S] = reverse(t.edges[S])
 
 	// flip the data too...
-	/*
-		flipped_data := []string{}
-		for _, r := range t.data {
-			flipped_data = append(flipped_data, reverse(r))
-		}
-		t.data = flipped_data
-	*/
 	t.data = flip_data(t.data)
 }
 
@@ -161,9 +151,6 @@ func get_input() (input [][]string) {
 	return
 }
 
-// map the tiles by their file ID number
-var tiles = map[string]*Tile{}
-
 // combine the edge elements into a string for comparison
 func get_edge_from_tile_data(tile []string, edge string) string {
 	var idx int
@@ -186,6 +173,7 @@ func get_edge_from_tile_data(tile []string, edge string) string {
 	return strings.Join(edge_data, "")
 }
 
+// read the loaded input into a handy data structure
 func parse_input(input [][]string) {
 	for _, tile := range input {
 		var tile_id string
@@ -212,6 +200,7 @@ func parse_input(input [][]string) {
 	}
 }
 
+// helper to check if a string is in a slice of strings
 func in_array(val string, array []string) (ok bool) {
 	for _, i := range array {
 		if ok = i == val; ok {
@@ -250,6 +239,8 @@ func find_matches(tile Tile, edge string) map[string]string {
 	return matches
 }
 
+// used in part 1 only
+/*
 func find_all_matches(tile Tile, edge string) map[string]string {
 	matches := map[string]string{}
 	sides := []string{N, E, S, W}
@@ -273,7 +264,10 @@ func find_all_matches(tile Tile, edge string) map[string]string {
 	}
 	return matches
 }
+*/
 
+// used for part 1 only
+/*
 func examine_tile(tile Tile) int {
 	fmt.Println("Examine:", tile.id)
 	matches_n := find_all_matches(tile, N)
@@ -306,6 +300,7 @@ func examine_tile(tile Tile) int {
 	}
 	return len(matches_n) + len(matches_e) + len(matches_s) + len(matches_w)
 }
+*/
 
 func find_matches_on_edge(tile *Tile, edge string, ignore []string) (*Tile, bool) {
 	var target_edge string
@@ -320,13 +315,13 @@ func find_matches_on_edge(tile *Tile, edge string, ignore []string) (*Tile, bool
 	case W:
 		target_edge = E
 	}
-	//fmt.Println("  target pattern:", tile.edges[edge])
 	for check_id, check_tile := range tiles {
 		if tile.id == check_id {
+			// don't compare our tile with itself
 			continue
 		}
 		if in_array(check_id, ignore) {
-			//fmt.Println("   ignore:", ignore)
+			// don't consider this one, it is already fixed elsewhere
 			continue
 		}
 		// flip and rotate check_tile until we get a match (8 possible matches from each tile)
@@ -355,12 +350,13 @@ func find_matches_on_edge(tile *Tile, edge string, ignore []string) (*Tile, bool
 	return nil, false
 }
 
+// a function to find matches from other tiles on this Tile's edge in the direction specified
+// we might want to ignore certain tiles (as they are already fixed)
 func get_chain(start_tile *Tile, direction string, ignore []string) (chain []*Tile) {
 	chain = append(chain, start_tile)
 	ignore = append(ignore, start_tile.id)
 	for col := 0; col < 12; col++ {
 		tile := chain[len(chain)-1]
-		//fmt.Printf("Find matches on tile %v %v edge\n", tile.id, direction)
 		// ignore everything already in this chain and in the ignore slice we were passed
 		for _, t := range chain {
 			if !in_array(t.id, ignore) {
@@ -371,32 +367,10 @@ func get_chain(start_tile *Tile, direction string, ignore []string) (chain []*Ti
 		if found {
 			chain = append(chain, matching_tile)
 		} else {
-			//fmt.Println("No more matches")
+			// No more matches
 			break
 		}
 	}
-	//fmt.Println("Found chain:")
-	//fmt.Printf("Start tile: %v:%v - %v\n", chain[0].id, direction, chain[0].edges[direction])
-	/*
-		var target_edge string
-		switch direction {
-		case N:
-			target_edge = S
-		case S:
-			target_edge = N
-		case E:
-			target_edge = W
-		case W:
-			target_edge = E
-		}
-		for i, tile := range chain {
-			if i == 0 {
-				continue
-			}
-			//fmt.Printf(" -> edge tile: %v: %v - %v / %v - %v\n", tile.id, direction, tile.edges[direction], tile.edges[target_edge], target_edge)
-		}
-	*/
-	//fmt.Printf("%v tiles in the chain.\n", len(chain))
 	return
 }
 
@@ -479,9 +453,6 @@ func run() {
 		------------------------------------------------------------
 	*/
 
-	//fmt.Printf("Picture is %v by %v\n", len(picture[0]), len(picture))
-	fmt.Printf("Grid is %v by %v\n", len(grid[0]), len(grid))
-
 	// Let's see the picture
 	// we need to strip the edges from each tile.data first
 	// the tile data is 10x10 so stripping the outside should make it 8x8
@@ -509,11 +480,16 @@ func run() {
 			picture = append(picture, pic_row)
 		}
 	}
+
+	fmt.Printf("Picture is %v by %v\n", len(picture[0]), len(picture))
+	fmt.Printf("Grid is %v by %v\n", len(grid[0]), len(grid))
+
+	// Have a look at the picture:
 	//for _, p := range picture {
 	//	fmt.Println(p)
 	//}
 
-	// OK FFS now we are looking for this pattern in this big image:
+	// OK now we are looking for this pattern in this big image:
 	// Actually it seems that the # just have to be there. The "." can be "#" or "."
 	/*
 		..................#.
@@ -582,24 +558,21 @@ func run() {
 		num_hashes += strings.Count(row, "#")
 	}
 	fmt.Println("Number of hashes:", num_hashes)
-	fmt.Println("Hashes minus dragons, TFA:", num_hashes-(num_dragons*15))
+	fmt.Println("Hashes minus dragons, the final answer:", num_hashes-(num_dragons*15))
 }
 
 func find_dragons(picture []string) int {
 	num_dragons := 0
-	count := 0
 	for i, row := range picture {
 		if i < 2 {
 			continue // no need to look in the top 2 rows, as we'll look for the "base" of the dragon
 		}
-		// FFS
 		// the # must match, the bits in between can be either . or #
 		// the pattern just has to fit in amongst the rest
 		// pattern for each row:
 		re_3 := regexp.MustCompile(`.\#.{2}\#.{2}\#.{2}\#.{2}\#.{2}\#.{3}`)
 		matches := re_3.FindAllStringIndex(row, -1)
 		for _, res := range matches {
-			count++
 			//bottom := row[res[0]:res[1]]
 			match_2, _ := regexp.MatchString(`\#.{4}\#{2}.{4}\#{2}.{4}\#{3}`, picture[i-1][res[0]:res[1]])
 			if match_2 {
@@ -615,12 +588,9 @@ func find_dragons(picture []string) int {
 					*/
 					num_dragons++
 				}
-			} else {
-				fmt.Println("match 2 failed, ss was ", picture[i-1][res[0]:res[1]])
 			}
 		}
 	}
-	fmt.Println("Count was:", count)
 	return num_dragons
 }
 
