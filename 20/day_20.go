@@ -302,7 +302,7 @@ func examine_tile(tile Tile) int {
 }
 */
 
-func find_matches_on_edge(tile *Tile, edges []string, ignore []string) (*Tile, bool) {
+func find_matches_on_edge(tile *Tile, edge string, ignore []string) (*Tile, bool) {
 	var target_edge string
 	for check_id, check_tile := range tiles {
 		if tile.id == check_id {
@@ -315,41 +315,66 @@ func find_matches_on_edge(tile *Tile, edges []string, ignore []string) (*Tile, b
 		}
 		// flip and rotate check_tile until we get a match (8 possible matches from each tile)
 		// if no matches, reset it and next
-		num_edges_to_match := len(edges)
+		num_edges_to_match := 1 // might be more than one edge if we are filling a grid
 		num_matches := 0
-		for _, edge := range edges {
-			// our target is the opposite edge to the one given
-			switch edge {
-			case N:
-				target_edge = S
-			case S:
-				target_edge = N
-			case E:
-				target_edge = W
-			case W:
-				target_edge = E
+		// our target is the opposite edge to the one given
+		switch edge {
+		case N:
+			target_edge = S
+		case S:
+			target_edge = N
+		case E:
+			target_edge = W
+		case W:
+			target_edge = E
+		}
+		for i := 0; i < 4; i++ {
+			if check_tile.edges[target_edge] == tile.edges[edge] {
+				//fmt.Printf("  tile %v:%v (f: %v, r: %v) matches our tile %v:%v - %v\n", check_tile.id, target_edge, f, r, tile.id, edge, check_tile.edges[target_edge])
+				num_matches++
+				if num_matches == num_edges_to_match {
+					return check_tile, true
+				}
 			}
+			check_tile.rotate()
+		}
+		check_tile.flip()
+		for i := 0; i < 4; i++ {
+			if check_tile.edges[target_edge] == tile.edges[edge] {
+				//fmt.Printf("  tile %v:%v (f: %v, r: %v) matches our tile %v:%v - %v\n", check_tile.id, target_edge, f, r, tile.id, edge, check_tile.edges[target_edge])
+				num_matches++
+				if num_matches == num_edges_to_match {
+					return check_tile, true
+				}
+			}
+			check_tile.rotate()
+		}
+	}
+	return nil, false
+}
+
+func find_matches_east(tile_W *Tile, tile_N *Tile, ignore []string) (*Tile, bool) {
+	for check_id, check_tile := range tiles {
+		if tile_W.id == check_id || (tile_N != nil && tile_N.id == check_id) {
+			// don't compare our tile with itself
+			continue
+		}
+		if in_array(check_id, ignore) {
+			// don't consider this one, it is already fixed elsewhere
+			continue
+		}
+		// flip and rotate check_tile until we get a match (8 possible matches from each tile)
+		// if no matches, reset it and next
+		for flip := 0; flip < 2; flip++ {
 			for i := 0; i < 4; i++ {
-				if check_tile.edges[target_edge] == tile.edges[edge] {
-					//fmt.Printf("  tile %v:%v (f: %v, r: %v) matches our tile %v:%v - %v\n", check_tile.id, target_edge, f, r, tile.id, edge, check_tile.edges[target_edge])
-					num_matches++
-					if num_matches == num_edges_to_match {
+				if check_tile.edges[W] == tile_W.edges[E] {
+					if tile_N == nil || check_tile.edges[N] == tile_N.edges[S] {
 						return check_tile, true
 					}
 				}
 				check_tile.rotate()
 			}
 			check_tile.flip()
-			for i := 0; i < 4; i++ {
-				if check_tile.edges[target_edge] == tile.edges[edge] {
-					//fmt.Printf("  tile %v:%v (f: %v, r: %v) matches our tile %v:%v - %v\n", check_tile.id, target_edge, f, r, tile.id, edge, check_tile.edges[target_edge])
-					num_matches++
-					if num_matches == num_edges_to_match {
-						return check_tile, true
-					}
-				}
-				check_tile.rotate()
-			}
 		}
 	}
 	return nil, false
@@ -357,19 +382,44 @@ func find_matches_on_edge(tile *Tile, edges []string, ignore []string) (*Tile, b
 
 // a function to find matches from other tiles on this Tile's edge in the direction specified
 // we might want to ignore certain tiles (as they are already fixed)
-// TODO: fix directions - it needs to be taking edges from 2 different tiles :-(
-func get_chain(start_tile *Tile, directions []string, ignore []string) (chain []*Tile) {
-	chain = append(chain, start_tile)
-	ignore = append(ignore, start_tile.id)
+func get_column(start_tile *Tile, direction string, ignore []string) (column []*Tile) {
+	column = append(column, start_tile)
 	for col := 0; col < 12; col++ {
-		tile := chain[len(chain)-1]
+		tile := column[len(column)-1]
+		// ignore everything already in this chain and in the ignore slice we were passed
+		for _, t := range column {
+			if !in_array(t.id, ignore) {
+				ignore = append(ignore, t.id)
+			}
+		}
+		matching_tile, found := find_matches_on_edge(tile, direction, ignore)
+		if found {
+			column = append(column, matching_tile)
+		} else {
+			// No more matches
+			break
+		}
+	}
+	return
+}
+
+// similar ...
+// find tiles that match the E of the first element in the row, and the S of the corresponding element in the row above (if there is one)
+func get_chain(grid [][]*Tile, row_num int, ignore []string) (chain []*Tile) {
+	chain = append(chain, grid[row_num][0])
+	for col := 1; col < 12; col++ {
+		tile_W := chain[len(chain)-1]
+		var tile_N *Tile = nil
+		if row_num > 0 {
+			tile_N = grid[row_num-1][col]
+		}
 		// ignore everything already in this chain and in the ignore slice we were passed
 		for _, t := range chain {
 			if !in_array(t.id, ignore) {
 				ignore = append(ignore, t.id)
 			}
 		}
-		matching_tile, found := find_matches_on_edge(tile, directions, ignore)
+		matching_tile, found := find_matches_east(tile_W, tile_N, ignore)
 		if found {
 			chain = append(chain, matching_tile)
 		} else {
@@ -392,9 +442,20 @@ func show(tileset []*Tile) {
 // {"2273", "2243", "2953", "1213"}
 // starting with one of the corners, try and fill in an edge of the big picture
 func run() {
+	// Through trial and error I know that this corner tile works without flipping / rotating
+	corner_tile := "2273"
+
+	// the grid we will put the fixed tiles in:
+	grid := make([][]*Tile, 12)
+
+	// the grid will start with a corner tile
+	header := make([]*Tile, 12)
+	header[0] = tiles[corner_tile]
+	grid[0] = header
+
 	// find a row running E beginning on specified start tile:
-	header := get_chain(tiles["2273"], []string{E}, []string{})
 	ignore := []string{}
+	header = get_chain(grid, 0, ignore)
 	for _, t := range header {
 		ignore = append(ignore, t.id)
 	}
@@ -403,15 +464,15 @@ func run() {
 			t.reset()
 		}
 	}
+	grid[0] = header
 
 	// OK that worked to find an edge row.
 	// These tiles should be able to form the heads of columns.
 	// So we should be able to find one chain for each, using the S edge, and end up with a 12x12 grid!
-	grid := make([][]*Tile, 12)
-	grid[0] = header
+
 	// now get the left column
 	start_tile := header[0]
-	column := get_chain(start_tile, []string{S}, ignore)
+	column := get_column(start_tile, S, ignore)
 
 	for j := 1; j < len(grid); j++ {
 		grid[j] = append(grid[j], column[j])
@@ -425,10 +486,10 @@ func run() {
 
 	// Now get all the other rows based on the first column
 	// these need to match both E of the tile to the left, and S of the tile above!
-	for col := 1; col < 12; col++ {
-		row := get_chain(column[col], []string{E, S}, ignore)
+	for row_num := 1; row_num < 12; row_num++ {
+		row := get_chain(grid, row_num, ignore)
 		for j := 1; j < 12; j++ {
-			grid[col] = append(grid[col], row[j])
+			grid[row_num] = append(grid[row_num], row[j])
 			ignore = append(ignore, row[j].id)
 		}
 		for _, t := range tiles {
@@ -463,8 +524,6 @@ func run() {
 	// Let's see the picture
 	// we need to strip the edges from each tile.data first
 	// the tile data is 10x10 so stripping the outside should make it 8x8
-	// the grid is 12 x 12
-	// so we should end up with a thing that is (12x8) by (12x8) i.e. 96x96
 	for _, tile := range tiles {
 		new_data := []string{}
 		for i, d := range tile.data {
@@ -478,7 +537,7 @@ func run() {
 
 	picture := []string{}
 	for _, row := range grid {
-		for i := 0; i < len(tiles["2273"].data); i++ {
+		for i := 0; i < len(tiles[corner_tile].data); i++ { // all tiles are the same, just picking any one here
 			r := []string{} // row of the picture
 			for _, tile := range row {
 				r = append(r, tile.data[i])
@@ -488,13 +547,15 @@ func run() {
 		}
 	}
 
+	// the grid is 12 x 12
+	// so we should end up with a thing that is (12x8) by (12x8) i.e. 96x96
 	fmt.Printf("Picture is %v by %v\n", len(picture[0]), len(picture))
 	fmt.Printf("Grid is %v by %v\n", len(grid[0]), len(grid))
 
 	// Have a look at the picture:
-	//for _, p := range picture {
-	//	fmt.Println(p)
-	//}
+	for _, p := range picture {
+		fmt.Println(p)
+	}
 
 	// OK now we are looking for this pattern in this big image:
 	// Actually it seems that the # just have to be there. The "." can be "#" or "."
@@ -551,10 +612,25 @@ func run() {
 	*/
 
 	fmt.Printf("Picture is %v by %v\n", len(picture[0]), len(picture))
-	picture = flip_data(picture)
-	picture = rotate_data(picture)
-
 	num_dragons := find_dragons(picture)
+	if num_dragons == 0 {
+	outer:
+		for flip := 0; flip < 2; flip++ {
+			for rot := 0; rot < 4; rot++ {
+				picture = rotate_data(picture)
+				num_dragons = find_dragons(picture)
+				if num_dragons > 0 {
+					break outer
+				}
+			}
+			picture = flip_data(picture)
+			num_dragons = find_dragons(picture)
+			if num_dragons > 0 {
+				break outer
+			}
+		}
+	}
+
 	// this gives us 31 dragons... (this is 10 dragons short, either that or I am counting 150 hashes too many!)
 	fmt.Println("Found how many dragons:", num_dragons)
 	// there are 15 x "#" in each dragon
@@ -570,31 +646,45 @@ func run() {
 
 func find_dragons(picture []string) int {
 	num_dragons := 0
+	test := 0
 	for i, row := range picture {
 		if i < 2 {
 			continue // no need to look in the top 2 rows, as we'll look for the "base" of the dragon
 		}
+		/*
+			..................#.
+			#....##....##....###
+			.#..#..#..#..#..#...
+		*/
 		// the # must match, the bits in between can be either . or #
 		// the pattern just has to fit in amongst the rest
 		// pattern for each row:
-		re_3 := regexp.MustCompile(`.\#.{2}\#.{2}\#.{2}\#.{2}\#.{2}\#.{3}`)
-		matches := re_3.FindAllStringIndex(row, -1)
-		for _, res := range matches {
-			//bottom := row[res[0]:res[1]]
-			match_2, _ := regexp.MatchString(`\#.{4}\#{2}.{4}\#{2}.{4}\#{3}`, picture[i-1][res[0]:res[1]])
-			if match_2 {
-				//middle := picture[i-1][res[0]:res[1]]
-				match_1, _ := regexp.MatchString(`.{18}\#.`, picture[i-2][res[0]:res[1]])
-				if match_1 {
-					//top := picture[i-2][res[0]:res[1]]
-					/*
-						fmt.Println("Dragon:")
-						fmt.Println(top)
-						fmt.Println(middle)
-						fmt.Println(bottom)
-					*/
-					num_dragons++
+		re_bottom := regexp.MustCompile(`.\#.{2}\#.{2}\#.{2}\#.{2}\#.{2}\#.{3}`)
+		// There are overlapping dragons!! (found out the hard way)
+		// Go doesn't do overlapping regexp matches
+		// find the first match, then truncate the row to start 1 character after this match
+		// and stop when there are no more matches
+		tmp := row
+		snip := 0
+		for {
+			match := re_bottom.FindStringIndex(tmp)
+			if match != nil {
+				test++
+				tmp = tmp[match[0]+1:]
+				m_1 := snip + match[0]
+				m_2 := snip + match[0] + 20
+				middle_segment := picture[i-1][m_1:m_2]
+				snip += match[0] + 1
+				match_2, _ := regexp.MatchString(`\#.{4}\#{2}.{4}\#{2}.{4}\#{3}`, middle_segment)
+				if match_2 {
+					top_segment := picture[i-2][m_1:m_2]
+					match_1, _ := regexp.MatchString(`.{18}\#.`, top_segment)
+					if match_1 {
+						num_dragons++
+					}
 				}
+			} else {
+				break
 			}
 		}
 	}
