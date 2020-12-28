@@ -302,19 +302,8 @@ func examine_tile(tile Tile) int {
 }
 */
 
-func find_matches_on_edge(tile *Tile, edge string, ignore []string) (*Tile, bool) {
+func find_matches_on_edge(tile *Tile, edges []string, ignore []string) (*Tile, bool) {
 	var target_edge string
-	// our target is the opposite edge to the one given
-	switch edge {
-	case N:
-		target_edge = S
-	case S:
-		target_edge = N
-	case E:
-		target_edge = W
-	case W:
-		target_edge = E
-	}
 	for check_id, check_tile := range tiles {
 		if tile.id == check_id {
 			// don't compare our tile with itself
@@ -326,25 +315,41 @@ func find_matches_on_edge(tile *Tile, edge string, ignore []string) (*Tile, bool
 		}
 		// flip and rotate check_tile until we get a match (8 possible matches from each tile)
 		// if no matches, reset it and next
-		f := 0
-		r := 0
-		for i := 0; i < 4; i++ {
-			if check_tile.edges[target_edge] == tile.edges[edge] {
-				//fmt.Printf("  tile %v:%v (f: %v, r: %v) matches our tile %v:%v - %v\n", check_tile.id, target_edge, f, r, tile.id, edge, check_tile.edges[target_edge])
-				return check_tile, true
+		num_edges_to_match := len(edges)
+		num_matches := 0
+		for _, edge := range edges {
+			// our target is the opposite edge to the one given
+			switch edge {
+			case N:
+				target_edge = S
+			case S:
+				target_edge = N
+			case E:
+				target_edge = W
+			case W:
+				target_edge = E
 			}
-			check_tile.rotate()
-			r++
-		}
-		check_tile.flip()
-		f++
-		for i := 0; i < 4; i++ {
-			if check_tile.edges[target_edge] == tile.edges[edge] {
-				//fmt.Printf("  tile %v:%v (f: %v, r: %v) matches our tile %v:%v - %v\n", check_tile.id, target_edge, f, r, tile.id, edge, check_tile.edges[target_edge])
-				return check_tile, true
+			for i := 0; i < 4; i++ {
+				if check_tile.edges[target_edge] == tile.edges[edge] {
+					//fmt.Printf("  tile %v:%v (f: %v, r: %v) matches our tile %v:%v - %v\n", check_tile.id, target_edge, f, r, tile.id, edge, check_tile.edges[target_edge])
+					num_matches++
+					if num_matches == num_edges_to_match {
+						return check_tile, true
+					}
+				}
+				check_tile.rotate()
 			}
-			check_tile.rotate()
-			r++
+			check_tile.flip()
+			for i := 0; i < 4; i++ {
+				if check_tile.edges[target_edge] == tile.edges[edge] {
+					//fmt.Printf("  tile %v:%v (f: %v, r: %v) matches our tile %v:%v - %v\n", check_tile.id, target_edge, f, r, tile.id, edge, check_tile.edges[target_edge])
+					num_matches++
+					if num_matches == num_edges_to_match {
+						return check_tile, true
+					}
+				}
+				check_tile.rotate()
+			}
 		}
 	}
 	return nil, false
@@ -352,7 +357,8 @@ func find_matches_on_edge(tile *Tile, edge string, ignore []string) (*Tile, bool
 
 // a function to find matches from other tiles on this Tile's edge in the direction specified
 // we might want to ignore certain tiles (as they are already fixed)
-func get_chain(start_tile *Tile, direction string, ignore []string) (chain []*Tile) {
+// TODO: fix directions - it needs to be taking edges from 2 different tiles :-(
+func get_chain(start_tile *Tile, directions []string, ignore []string) (chain []*Tile) {
 	chain = append(chain, start_tile)
 	ignore = append(ignore, start_tile.id)
 	for col := 0; col < 12; col++ {
@@ -363,7 +369,7 @@ func get_chain(start_tile *Tile, direction string, ignore []string) (chain []*Ti
 				ignore = append(ignore, t.id)
 			}
 		}
-		matching_tile, found := find_matches_on_edge(tile, direction, ignore)
+		matching_tile, found := find_matches_on_edge(tile, directions, ignore)
 		if found {
 			chain = append(chain, matching_tile)
 		} else {
@@ -387,7 +393,7 @@ func show(tileset []*Tile) {
 // starting with one of the corners, try and fill in an edge of the big picture
 func run() {
 	// find a row running E beginning on specified start tile:
-	header := get_chain(tiles["2273"], E, []string{})
+	header := get_chain(tiles["2273"], []string{E}, []string{})
 	ignore := []string{}
 	for _, t := range header {
 		ignore = append(ignore, t.id)
@@ -405,7 +411,7 @@ func run() {
 	grid[0] = header
 	// now get the left column
 	start_tile := header[0]
-	column := get_chain(start_tile, S, ignore)
+	column := get_chain(start_tile, []string{S}, ignore)
 
 	for j := 1; j < len(grid); j++ {
 		grid[j] = append(grid[j], column[j])
@@ -418,8 +424,9 @@ func run() {
 	}
 
 	// Now get all the other rows based on the first column
+	// these need to match both E of the tile to the left, and S of the tile above!
 	for col := 1; col < 12; col++ {
-		row := get_chain(column[col], E, ignore)
+		row := get_chain(column[col], []string{E, S}, ignore)
 		for j := 1; j < 12; j++ {
 			grid[col] = append(grid[col], row[j])
 			ignore = append(ignore, row[j].id)
