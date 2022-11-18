@@ -1,6 +1,6 @@
 # Advent of Code, 2020
 
-My solutions for this year's AoC. I am using Go as a way of learning Go.
+My solutions for this year's AoC. I am using it as a way of learning Go.
 
 ## Progress:
 - Day 1: very nice + big success (got tempted to over-engineer)
